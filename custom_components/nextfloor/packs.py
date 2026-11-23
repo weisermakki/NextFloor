@@ -184,6 +184,8 @@ ITEM_SCHEMA = vol.Schema(
                 "garden",
             ]
         ),
+        # a spot or downlight: how far its beam leans towards the item's front (degrees from straight down)
+        vol.Optional("aim"): vol.All(vol.Coerce(float), vol.Range(min=0, max=80)),
         vol.Required("parts"): vol.All([PART_SCHEMA], vol.Length(min=1, max=60)),
         vol.Optional("symbol"): vol.All([SYMBOL_SCHEMA], vol.Length(max=40)),
         # colours to choose from; the first one is the default

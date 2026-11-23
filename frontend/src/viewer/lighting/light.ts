@@ -17,17 +17,22 @@ export interface LightSource {
   kind: LightKind;
   /** The index of the room (floor.rooms) the lamp is in. */
   room: number;
+  /** Spots: the direction of the beam (a unit vector); unset = straight down. */
+  axis?: [number, number, number];
 }
 
-/** The share of its light a lamp sends in a direction; dy is the vertical part of the unit vector from the lamp to the point. */
-function characteristic(kind: LightKind, dy: number): number {
+/**
+ * The share of its light a lamp sends in a direction; dy is the vertical part of the unit vector from the lamp to the point, `along`
+ * how far that vector runs along a spot's beam (1 = right in it; straight down when the beam is not aimed).
+ */
+function characteristic(kind: LightKind, dy: number, along = -dy): number {
   const down = Math.max(0, -dy);
   const up = Math.max(0, dy);
   switch (kind) {
     case "ceiling":
       return 0.3 + 0.7 * down;
     case "spot":
-      return 0.06 + 0.94 * down ** 5;
+      return 0.06 + 0.94 * Math.max(0, along) ** 5;
     case "pendant":
       return 0.25 + 0.85 * down ** 2 + 0.2 * up;
     case "up":
@@ -58,7 +63,8 @@ function contribution(lamp: LightSource, at: Triple, normal: Triple): number {
   const attenuation = falloff * Math.sqrt(falloff);
   // surfaces facing the lamp get more light; a floor right below a lamp faces it fully
   const facing = Math.max(0, -(dx * normal[0] + dy * normal[1] + dz * normal[2]) / distance);
-  return lamp.level * attenuation * (0.2 + 0.8 * facing) * characteristic(lamp.kind, dy / distance);
+  const along = lamp.axis ? (dx * lamp.axis[0] + dy * lamp.axis[1] + dz * lamp.axis[2]) / distance : -dy / distance;
+  return lamp.level * attenuation * (0.2 + 0.8 * facing) * characteristic(lamp.kind, dy / distance, along);
 }
 
 /** Light a room passes on through an open door: the doorway acts as a lamp for the room on the other side. */

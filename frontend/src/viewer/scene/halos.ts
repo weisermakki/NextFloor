@@ -2,7 +2,7 @@
 
 import { Color } from "three";
 import { DEG, GeoBuffer } from "../geo.ts";
-import { HANGING_LAMPS, LAMP_SIZE } from "./lamp-data.ts";
+import { HANGING_LAMPS, LAMP_SIZE, beamAxis } from "./lamp-data.ts";
 import type { DeviceMarker, LampModel } from "./types.ts";
 import { stripPoint, stripRiseLift } from "./strip.ts";
 
@@ -161,13 +161,53 @@ export function addSpotCone(buffer: GeoBuffer, lamp: DeviceMarker & { lamp: Lamp
   const y = haloHeight(lamp.lamp, ceiling, lamp.base ?? 0, height);
   const top = new Color(...(glow.color.map((c) => c * 0.09 * glow.level) as [number, number, number]));
   const bottom = new Color(0, 0, 0);
-  const [r0, r1] = [Math.max(0.03, width / 2), 0.45 + 0.35 * glow.level];
+  const r0 = Math.max(0.03, width / 2);
   const sides = 16;
+  if (lamp.aim) {
+    addAimedCone(buffer, lamp, lamp.aim, y, r0, top, bottom, glow.level, sides);
+    return;
+  }
+  const r1 = 0.45 + 0.35 * glow.level;
   const ring = (angle: number, radius: number, yy: number): [number, number, number] => [lamp.x + Math.cos(angle) * radius, yy, lamp.z + Math.sin(angle) * radius];
   for (let i = 0; i < sides; i++) {
     const [a0, a1] = [(i / sides) * Math.PI * 2, ((i + 1) / sides) * Math.PI * 2];
     buffer.tri(ring(a0, r0, y), ring(a0, r1, 0.02), ring(a1, r1, 0.02), top, bottom, bottom);
     buffer.tri(ring(a0, r0, y), ring(a1, r1, 0.02), ring(a1, r0, y), top, bottom, top);
+  }
+}
+
+/**
+ * The cone of a spot whose beam leans towards its front: it opens along the beam (as wide per metre as a ceiling spot's cone)
+ * and ends where its rays reach the floor, so its foot lies on the floor as an oval.
+ */
+function addAimedCone(buffer: GeoBuffer, lamp: DeviceMarker, aim: number, y: number, r0: number, top: Color, bottom: Color, level: number, sides: number): void {
+  const axis = beamAxis(lamp.rotation ?? 0, aim);
+  const turn = ((lamp.rotation ?? 0) * Math.PI) / 180;
+  // two directions across the beam: the lamp's width axis (level) and the one square to it and the beam
+  const across: [number, number, number] = [Math.cos(turn), 0, Math.sin(turn)];
+  const across2: [number, number, number] = [axis[1] * across[2] - axis[2] * across[1], axis[2] * across[0] - axis[0] * across[2], axis[0] * across[1] - axis[1] * across[0]];
+  const spread = 0.2 + 0.12 * level;
+  const drop = Math.max(0.05, y - 0.02);
+  const side = (angle: number, k: number): [number, number, number] => {
+    const [c, s] = [Math.cos(angle) * k, Math.sin(angle) * k];
+    return [across[0] * c + across2[0] * s, across[1] * c + across2[1] * s, across[2] * c + across2[2] * s];
+  };
+  const head = (angle: number): [number, number, number] => {
+    const o = side(angle, r0);
+    return [lamp.x + o[0], y + o[1], lamp.z + o[2]];
+  };
+  const foot = (angle: number): [number, number, number] => {
+    // a ray from the head along the beam, spread out at this angle, down to the floor (never flatter than a gentle slope)
+    const o = side(angle, spread);
+    const ray = [axis[0] + o[0], Math.min(-0.15, axis[1] + o[1]), axis[2] + o[2]];
+    const t = drop / -ray[1];
+    const h = head(angle);
+    return [h[0] + ray[0] * t, 0.02, h[2] + ray[2] * t];
+  };
+  for (let i = 0; i < sides; i++) {
+    const [a0, a1] = [(i / sides) * Math.PI * 2, ((i + 1) / sides) * Math.PI * 2];
+    buffer.tri(head(a0), foot(a0), foot(a1), top, bottom, bottom);
+    buffer.tri(head(a0), foot(a1), head(a1), top, bottom, top);
   }
 }
 

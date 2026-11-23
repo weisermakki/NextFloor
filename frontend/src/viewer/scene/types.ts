@@ -95,6 +95,8 @@ export interface DeviceMarker {
   upright?: boolean;
   /** LED strip: how steeply its length rises (degrees). */
   rise?: number;
+  /** Spots and downlights: how far the beam leans towards the lamp's front (degrees from straight down). */
+  aim?: number;
   /** Show the HTML marker (false: the 3D object alone stands for the device). */
   pin?: boolean;
   /** A placed device fixed against moving. */

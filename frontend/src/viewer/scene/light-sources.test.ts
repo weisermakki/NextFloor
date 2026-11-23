@@ -67,3 +67,12 @@ test("a rising strip climbs along its length from its mount height, and one unde
   const flatCeiling = lightSourcesOf(floor, null, [marker({ lamp: "strip", size: [2, 0.04, 0.03], rotation: 0 })], on);
   assert.ok(underCeiling[2].y <= flatCeiling[2].y + 1e-9, "its high end stays under the ceiling");
 });
+
+test("an aimed spot's light runs along its beam towards its front", () => {
+  const [plain] = lightSourcesOf(floor, null, [marker({ lamp: "spot", size: [0.1, 0.1, 0.2], rotation: -90 })], on);
+  assert.equal(plain.axis, undefined);
+  const [aimed] = lightSourcesOf(floor, null, [marker({ lamp: "spot", size: [0.1, 0.1, 0.2], rotation: -90, aim: 30 })], on);
+  assert.ok(aimed.axis);
+  const [ax, ay, az] = aimed.axis!;
+  assert.ok(Math.abs(ax - 0.5) < 1e-9 && Math.abs(ay + Math.cos(Math.PI / 6)) < 1e-9 && Math.abs(az) < 1e-9);
+});

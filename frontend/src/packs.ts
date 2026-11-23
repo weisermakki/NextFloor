@@ -100,6 +100,8 @@ export interface PackItem {
   hole?: boolean;
   /** A lamp: the way its light spreads. */
   light?: LampModel;
+  /** A spot or downlight: how far its beam leans towards the item's front (degrees from straight down; 0 = down). */
+  aim?: number;
   parts: PackPart[];
   symbol?: PackSymbol[];
   /** Colours to choose from, stored as the furniture's variant. The first is the default. */

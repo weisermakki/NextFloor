@@ -123,6 +123,8 @@ const LAMP_BODY = 0x2a3a60;
 /** Fan blades: a little lighter than the lamp bodies, so they read against the motor. */
 const FAN_BLADE = 0x4a5c88;
 const LAMP_SHADE = 0x1d2946;
+/** The shade of a lamp that is off in the realistic look: pale like an opal shade (the neon navy would turn bright blue there). */
+const LAMP_SHADE_REAL = 0xdad7d0;
 /** Lamps that hang from the ceiling (hidden in the cut view). */
 const FLASH_MS = 450;
 const EFFECT_MS = 125;
@@ -1001,6 +1003,8 @@ export class NextFloorViewer {
     this.energyLayer.setLight(this.lightStage);
     // the neon ground grid would vanish on the light background anyway
     this.placeGround();
+    // shades of lamps that are off take the look's colour
+    for (const fv of this.floors) this.buildLamps(fv);
     this.invalidate();
   }
 
@@ -1586,7 +1590,7 @@ export class NextFloorViewer {
       return o ? Math.max(o.open, o.open2 ?? 0) : 0.5;
     });
     const sig =
-      sources.map((l) => `${l.x.toFixed(2)},${l.y.toFixed(2)},${l.z.toFixed(2)},${l.kind},${l.level.toFixed(3)},${l.color.map((c) => c.toFixed(3)).join("/")}`).join(";") +
+      sources.map((l) => `${l.x.toFixed(2)},${l.y.toFixed(2)},${l.z.toFixed(2)},${l.kind},${l.axis?.map((a) => a.toFixed(2)).join("/") ?? ""},${l.level.toFixed(3)},${l.color.map((c) => c.toFixed(3)).join("/")}`).join(";") +
       "|" +
       doorOpen.map((o) => o.toFixed(1)).join(",");
     if (sig === fv.glowSig) return;
@@ -2115,6 +2119,7 @@ export class NextFloorViewer {
     const glows = lamps.map((d) => this.glowOf(d));
     const wedges = this.devices.filter((d) => d.floorId === fv.floor.id && d.wedge);
     const colorSig =
+      this.theme +
       lamps.map((d, i) => `${flash(d.id)},${glows[i] ? `${glows[i]!.level.toFixed(3)},${glows[i]!.color.map((c) => c.toFixed(3)).join("/")}` : "off"}`).join(";") +
       "|" +
       wedges.map((d) => `${d.id},${d.x},${d.z},${d.rotation ?? 0},${JSON.stringify(d.wedge)}`).join(";");
@@ -2159,7 +2164,7 @@ export class NextFloorViewer {
       const glow = glows[i];
       // a lit shade glows in the light's colour, brighter with more brightness; a tap flashes it white
       const k = glow ? 0.55 + 0.45 * glow.level : 0;
-      const shadeC = glow ? new Color(...(glow.color.map((c) => Math.min(1, c * k)) as [number, number, number])) : new Color(LAMP_SHADE);
+      const shadeC = glow ? new Color(...(glow.color.map((c) => Math.min(1, c * k)) as [number, number, number])) : new Color(this.theme === "real" ? LAMP_SHADE_REAL : LAMP_SHADE);
       const f = flash(d.id);
       if (f > 0) shadeC.lerp(new Color(1, 1, 1), 0.7 * f);
       // the model's colours come from hex values: convert the same way (colour management)

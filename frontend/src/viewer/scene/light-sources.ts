@@ -2,7 +2,7 @@
 
 import type { Floor } from "../../model.ts";
 import { roomIndexAt, zoneOf, type LightKind, type LightSource } from "../lighting.ts";
-import { LAMP_SIZE, lightOrigin } from "./lamp-data.ts";
+import { LAMP_SIZE, beamAxis, lightOrigin } from "./lamp-data.ts";
 import { stripPoint, stripRiseLift } from "./strip.ts";
 import type { DeviceMarker } from "./types.ts";
 
@@ -29,7 +29,9 @@ export function lightSourcesOf(floor: Floor, zones: readonly number[] | null, ma
     const y = marker.lightY ?? fallbackY;
     const { color, level } = glow;
     if (marker.lamp !== "strip") {
-      sources.push({ x: marker.x, y, z: marker.z, color, level, kind, room });
+      // an aimed spot sends its beam towards its front
+      const axis = kind === "spot" && marker.aim ? beamAxis(marker.rotation ?? 0, marker.aim) : undefined;
+      sources.push({ x: marker.x, y, z: marker.z, color, level, kind, room, ...(axis ? { axis } : {}) });
       continue;
     }
     // standing upright a strip climbs; one turned on its side (or standing) lights all around rather than up or down

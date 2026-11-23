@@ -124,3 +124,13 @@ test("the room under a point, and the zone a room belongs to", () => {
   assert.equal(zoneOf([0, 0], 2), 2, "the outside zone keeps its own number");
   assert.equal(zoneOf([0, 0], -1), -1);
 });
+
+test("an aimed spot lights the floor ahead of it more than the floor below and behind it", () => {
+  const floor = { ...newFloor("f", "F", 0), rooms: [room("a", 0, 0, 6, 4)] };
+  const s = surfaceOf(floor);
+  const lean = Math.PI / 4;
+  const colors = lightColors(s, [lamp(2, 2, [1, 1, 1], 0, { y: 1.2, kind: "spot", axis: [Math.sin(lean), -Math.cos(lean), 0] })]);
+  const ahead = floorColor(s, colors, 3.2, 2)[0];
+  const behind = floorColor(s, colors, 0.8, 2)[0];
+  assert.ok(ahead > floorColor(s, colors, 2, 2)[0] && ahead > 3 * behind, `${ahead} / ${behind}`);
+});

@@ -20,6 +20,16 @@ export const LAMP_SIZE: Record<LampModel, readonly [number, number, number]> = {
   strip: [2, 0.04, 0.03],
 };
 
+/**
+ * The direction a spot's beam points (a unit vector): straight down, leaning `aim` degrees towards the lamp's front, the side a
+ * lamp turned by `rotation` faces (like a wall lamp's glow).
+ */
+export function beamAxis(rotation: number, aim: number): [number, number, number] {
+  const turn = (rotation * Math.PI) / 180;
+  const lean = (aim * Math.PI) / 180;
+  return [-Math.sin(turn) * Math.sin(lean), -Math.cos(lean), Math.cos(turn) * Math.sin(lean)];
+}
+
 /** Models that hang from the ceiling, which the cut view hides. */
 export const HANGING_LAMPS: ReadonlySet<LampModel> = new Set(["ceiling", "downlight", "spot", "panel", "pendant", "fan", "strip"]);
 

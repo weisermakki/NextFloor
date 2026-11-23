@@ -69,3 +69,17 @@ test("a low wall only casts a shadow for a camera above it, a wall as high as th
   addFloorWedge(blocked, marker({ wedge, y: 2, rotation: 0 }), wall(), 2.5);
   assert.ok(over.count > blocked.count);
 });
+
+test("an aimed spot's cone leans towards the lamp's front and ends on the floor", () => {
+  const buffer = new GeoBuffer();
+  // turned by -90° the front is +x; the head hangs at 1 m
+  addSpotCone(buffer, marker({ lamp: "spot", size: [0.1, 0.1, 1.5], rotation: -90, aim: 35 }) as never, { color: [1, 1, 1], level: 1 }, 2.5);
+  assert.equal(buffer.count, 16 * 2);
+  const p = buffer.p;
+  const feet: number[][] = [];
+  for (let i = 0; i < p.length; i += 3) if (Math.abs(p[i + 1] - 0.02) < 1e-9) feet.push([p[i], p[i + 2]]);
+  assert.ok(feet.length > 0);
+  const middle = feet.reduce((s, f) => s + f[0], 0) / feet.length;
+  assert.ok(middle > 0.5 && middle < 1.1, `foot centre at x ${middle}`);
+  assert.ok(feet.every((f) => Math.abs(f[1]) < 0.6), "the foot stays across the beam");
+});
